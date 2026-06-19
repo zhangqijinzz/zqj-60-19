@@ -313,3 +313,68 @@ export async function sharePalace(id: string): Promise<string> {
   await localforage.setItem('memory-palaces', list);
   return shareCode;
 }
+
+export async function getMemoryPalaceByShareCode(code: string): Promise<MemoryPalace | null> {
+  await delay(200);
+  const list = (await localforage.getItem<MemoryPalace[]>('memory-palaces')) || [];
+  const palace = list.find((p) => p.shareCode === code.toUpperCase() && p.isShared) || null;
+  if (palace) {
+    return rehydrateMemoryPalace(palace);
+  }
+  return null;
+}
+
+export async function updateMemoryPalace(
+  id: string,
+  updates: Partial<MemoryPalace>
+): Promise<MemoryPalace | null> {
+  await delay(200);
+  const list = (await localforage.getItem<MemoryPalace[]>('memory-palaces')) || [];
+  const index = list.findIndex((p) => p.id === id);
+  if (index === -1) return null;
+
+  const updated = { ...list[index], ...updates };
+  list[index] = updated;
+  await localforage.setItem('memory-palaces', list);
+  return rehydrateMemoryPalace(updated);
+}
+
+export async function updateMemoryNodePosition(
+  palaceId: string,
+  nodeId: string,
+  position: [number, number, number]
+): Promise<MemoryPalace | null> {
+  await delay(100);
+  const list = (await localforage.getItem<MemoryPalace[]>('memory-palaces')) || [];
+  const palaceIndex = list.findIndex((p) => p.id === palaceId);
+  if (palaceIndex === -1) return null;
+
+  const palace = list[palaceIndex];
+  const nodeIndex = palace.sceneData.memoryNodes.findIndex((n) => n.id === nodeId);
+  if (nodeIndex === -1) return null;
+
+  palace.sceneData.memoryNodes[nodeIndex].position = position;
+  await localforage.setItem('memory-palaces', list);
+  return rehydrateMemoryPalace(palace);
+}
+
+export async function updateMemoryNodesPositions(
+  palaceId: string,
+  nodes: { id: string; position: [number, number, number] }[]
+): Promise<MemoryPalace | null> {
+  await delay(150);
+  const list = (await localforage.getItem<MemoryPalace[]>('memory-palaces')) || [];
+  const palaceIndex = list.findIndex((p) => p.id === palaceId);
+  if (palaceIndex === -1) return null;
+
+  const palace = list[palaceIndex];
+  nodes.forEach(({ id, position }) => {
+    const nodeIndex = palace.sceneData.memoryNodes.findIndex((n) => n.id === id);
+    if (nodeIndex !== -1) {
+      palace.sceneData.memoryNodes[nodeIndex].position = position;
+    }
+  });
+
+  await localforage.setItem('memory-palaces', list);
+  return rehydrateMemoryPalace(palace);
+}

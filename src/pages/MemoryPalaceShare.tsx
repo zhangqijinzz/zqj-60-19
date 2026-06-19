@@ -4,10 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Sparkles } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
-import { ArrowLeft, Info, Volume2, VolumeX, Play, Pause, Edit3 } from 'lucide-react';
+import { ArrowLeft, Info, Volume2, VolumeX, Play, Pause, Heart } from 'lucide-react';
 import { AuroraBackground } from '@/components/common/AuroraBackground';
-import { GazeButton } from '@/components/common/GazeButton';
-import { getMemoryPalace } from '@/utils/mockApi';
+import { getMemoryPalaceByShareCode } from '@/utils/mockApi';
 import type { MemoryPalace as MemoryPalaceType, MemoryNode, MemoryScene } from '@/types';
 import * as THREE from 'three';
 
@@ -302,8 +301,8 @@ function NodeModal({ node, onClose }: NodeModalProps) {
           className="w-full max-w-lg mx-6 p-8 rounded-3xl bg-gradient-to-br from-[#0a0e27]/95 to-[#1a1a3e]/95 border border-white/15 backdrop-blur-xl shadow-2xl"
         >
           <div className="flex items-start justify-between mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400/30 to-purple-500/30 border border-cyan-400/30 flex items-center justify-center">
-              <Info className="w-6 h-6 text-cyan-200" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400/30 to-purple-500/30 border border-rose-400/30 flex items-center justify-center">
+              <Heart className="w-6 h-6 text-rose-200" />
             </div>
             <motion.button
               whileHover={{ scale: 1.1 }}
@@ -315,7 +314,7 @@ function NodeModal({ node, onClose }: NodeModalProps) {
             </motion.button>
           </div>
 
-          <h3 className="text-3xl font-bold text-white/95 mb-4 bg-gradient-to-r from-cyan-200 to-purple-200 bg-clip-text text-transparent">
+          <h3 className="text-3xl font-bold text-white/95 mb-4 bg-gradient-to-r from-rose-200 to-purple-200 bg-clip-text text-transparent">
             {node.label}
           </h3>
 
@@ -338,12 +337,12 @@ function NodeModal({ node, onClose }: NodeModalProps) {
                 disabled={!hasAudio || isLoading}
                 className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
                   hasAudio && !isLoading
-                    ? 'bg-gradient-to-br from-cyan-500/30 to-purple-500/30 border border-cyan-400/40 text-cyan-100 hover:from-cyan-500/40 hover:to-purple-500/40 cursor-pointer'
+                    ? 'bg-gradient-to-br from-rose-500/30 to-purple-500/30 border border-rose-400/40 text-rose-100 hover:from-rose-500/40 hover:to-purple-500/40 cursor-pointer'
                     : 'bg-white/5 border border-white/10 text-white/30 cursor-not-allowed'
                 }`}
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-cyan-300 rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-rose-300 rounded-full animate-spin" />
                 ) : isPlaying ? (
                   <Pause className="w-5 h-5" />
                 ) : (
@@ -357,7 +356,7 @@ function NodeModal({ node, onClose }: NodeModalProps) {
                 </p>
                 <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-cyan-400 to-purple-400"
+                    className="h-full bg-gradient-to-r from-rose-400 to-purple-400"
                     initial={{ width: '0%' }}
                     animate={isPlaying ? { width: '100%' } : { width: '0%' }}
                     transition={isPlaying ? { duration: 12, ease: 'linear' } : { duration: 0.3 }}
@@ -365,7 +364,7 @@ function NodeModal({ node, onClose }: NodeModalProps) {
                 </div>
               </div>
               {hasAudio ? (
-                <Volume2 className="w-5 h-5 text-cyan-300" />
+                <Volume2 className="w-5 h-5 text-rose-300" />
               ) : (
                 <VolumeX className="w-5 h-5 text-white/30" />
               )}
@@ -374,7 +373,7 @@ function NodeModal({ node, onClose }: NodeModalProps) {
               {Array.from({ length: 20 }).map((_, i) => (
                 <motion.div
                   key={i}
-                  className="w-1 rounded-full bg-gradient-to-t from-cyan-400 to-purple-400"
+                  className="w-1 rounded-full bg-gradient-to-t from-rose-400 to-purple-400"
                   animate={
                     isPlaying
                       ? {
@@ -395,9 +394,14 @@ function NodeModal({ node, onClose }: NodeModalProps) {
           </div>
 
           <div className="flex justify-center">
-            <GazeButton variant="primary" onActivate={onClose}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onClose}
+              className="px-8 py-3 rounded-full bg-gradient-to-r from-rose-500/30 to-purple-500/30 border border-rose-400/40 text-white/90 font-medium hover:from-rose-500/40 hover:to-purple-500/40 transition-all"
+            >
               继续漫游
-            </GazeButton>
+            </motion.button>
           </div>
         </motion.div>
       </motion.div>
@@ -405,27 +409,33 @@ function NodeModal({ node, onClose }: NodeModalProps) {
   );
 }
 
-export default function MemoryPalaceExplorePage() {
-  const { id } = useParams<{ id: string }>();
+export default function MemoryPalaceSharePage() {
+  const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const [palace, setPalace] = useState<MemoryPalaceType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeNode, setActiveNode] = useState<MemoryNode | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const cameraTargetRef = useRef<[number, number, number]>([0, 0, 0]);
 
   useEffect(() => {
     const load = async () => {
-      if (!id) return;
+      if (!code) return;
       setIsLoading(true);
+      setNotFound(false);
       try {
-        const data = await getMemoryPalace(id);
-        if (data) setPalace(data);
+        const data = await getMemoryPalaceByShareCode(code);
+        if (data) {
+          setPalace(data);
+        } else {
+          setNotFound(true);
+        }
       } finally {
         setIsLoading(false);
       }
     };
     load();
-  }, [id]);
+  }, [code]);
 
   const handleNodeActivate = (node: MemoryNode) => {
     cameraTargetRef.current = node.position;
@@ -437,9 +447,7 @@ export default function MemoryPalaceExplorePage() {
     setActiveNode(null);
   };
 
-  const sceneTheme = useMemo<
-    'aurora' | 'ocean' | 'forest' | 'sunset'
-  >(() => {
+  const sceneTheme = useMemo<'aurora' | 'ocean' | 'forest' | 'sunset'>(() => {
     if (!palace) return 'sunset';
     const lighting = palace.sceneData.lighting;
     if (lighting === 'night') return 'aurora';
@@ -461,16 +469,16 @@ export default function MemoryPalaceExplorePage() {
             <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              className="w-16 h-16 mx-auto mb-6 rounded-3xl border-2 border-cyan-400/30 border-t-cyan-400"
+              className="w-16 h-16 mx-auto mb-6 rounded-3xl border-2 border-rose-400/30 border-t-rose-400"
             />
-            <p className="text-white/70 text-lg">正在载入记忆宫殿…</p>
+            <p className="text-white/70 text-lg">正在打开记忆宫殿…</p>
           </motion.div>
         </div>
       </div>
     );
   }
 
-  if (!palace) {
+  if (notFound || !palace) {
     return (
       <div className="relative min-h-screen w-full overflow-hidden">
         <AuroraBackground theme="sunset" intensity={1} />
@@ -480,11 +488,21 @@ export default function MemoryPalaceExplorePage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center max-w-md"
           >
-            <h2 className="text-3xl font-bold text-white/90 mb-4">记忆宫殿不存在</h2>
-            <p className="text-white/50 mb-8">这段记忆可能已经遗失，或者从未被创建。</p>
-            <GazeButton variant="primary" onActivate={() => navigate('/memory-palace')}>
-              返回大厅
-            </GazeButton>
+            <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-rose-500/20 to-purple-500/20 border border-rose-400/30 flex items-center justify-center">
+              <Heart className="w-10 h-10 text-rose-300/60" />
+            </div>
+            <h2 className="text-3xl font-bold text-white/90 mb-4">分享码无效</h2>
+            <p className="text-white/50 mb-8">
+              这段记忆可能已经被设为私密，或者分享码已过期。
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/')}
+              className="px-6 py-3 rounded-full bg-gradient-to-r from-rose-500/30 to-purple-500/30 border border-rose-400/40 text-white/90 font-medium hover:from-rose-500/40 hover:to-purple-500/40 transition-all"
+            >
+              返回首页
+            </motion.button>
           </motion.div>
         </div>
       </div>
@@ -533,50 +551,29 @@ export default function MemoryPalaceExplorePage() {
             <motion.button
               whileHover={{ scale: 1.05, x: -2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/memory-palace')}
+              onClick={() => navigate('/')}
               className="flex items-center gap-2 px-5 py-3 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-md transition-all duration-300 group"
             >
               <ArrowLeft className="w-5 h-5 text-white/70 group-hover:text-white/90 transition-colors" />
               <span className="text-white/80 group-hover:text-white/95 text-base font-medium transition-colors">
-                返回大厅
+                返回首页
               </span>
             </motion.button>
           </div>
 
           <div className="text-center pointer-events-none">
-            <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-amber-200 via-rose-200 to-purple-200 bg-clip-text text-transparent drop-shadow-lg">
-              {palace.name}
-            </h1>
-            <p className="text-white/50 text-sm mt-1">
-              {palace.sceneData.type === 'indoor'
-                ? '室内场景'
-                : palace.sceneData.type === 'outdoor'
-                ? '户外场景'
-                : '混合场景'}
-              {' · '}
-              {palace.sceneData.lighting === 'sunrise'
-                ? '清晨'
-                : palace.sceneData.lighting === 'noon'
-                ? '正午'
-                : palace.sceneData.lighting === 'sunset'
-                ? '黄昏'
-                : '夜晚'}
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Heart className="w-5 h-5 text-rose-300" />
+              <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-rose-200 via-purple-200 to-cyan-200 bg-clip-text text-transparent drop-shadow-lg">
+                {palace.name}
+              </h1>
+            </div>
+            <p className="text-white/50 text-sm">
+              一份来自远方的珍贵记忆
             </p>
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(`/memory-palace/${id}/edit`)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-md transition-all duration-300 group"
-            >
-              <Edit3 className="w-4 h-4 text-white/60 group-hover:text-white/90 transition-colors" />
-              <span className="text-white/70 group-hover:text-white/90 text-sm font-medium transition-colors">
-                编辑
-              </span>
-            </motion.button>
-          </div>
+          <div className="w-[120px]" />
         </header>
       </div>
 

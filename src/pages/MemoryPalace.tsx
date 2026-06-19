@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Share2, Castle, Clock, Sparkles, Wand2, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Share2, Castle, Clock, Sparkles, Wand2, Copy, Check, Edit3 } from 'lucide-react';
 import { AuroraBackground } from '@/components/common/AuroraBackground';
 import { VoiceRecorder } from '@/components/common/VoiceRecorder';
 import {
@@ -38,9 +38,10 @@ interface PalaceCardProps {
   index: number;
   onEnter: (id: string) => void;
   onShare: (id: string) => void;
+  onEdit: (id: string) => void;
 }
 
-function PalaceCard({ palace, index, onEnter, onShare }: PalaceCardProps) {
+function PalaceCard({ palace, index, onEnter, onShare, onEdit }: PalaceCardProps) {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -48,7 +49,8 @@ function PalaceCard({ palace, index, onEnter, onShare }: PalaceCardProps) {
     const code = await sharePalace(palace.id);
     if (code) {
       try {
-        await navigator.clipboard.writeText(code);
+        const shareUrl = `${window.location.origin}/share/${code}`;
+        await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
@@ -81,19 +83,34 @@ function PalaceCard({ palace, index, onEnter, onShare }: PalaceCardProps) {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400/30 to-orange-500/30 border border-amber-400/30 flex items-center justify-center">
             <Castle className="w-6 h-6 text-amber-200" />
           </div>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleShare}
-            className={cn(
-              'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300',
-              copied
-                ? 'bg-emerald-500/30 border border-emerald-400/40 text-emerald-200'
-                : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/20'
-            )}
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(palace.id);
+              }}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/20"
+              title="编辑"
+            >
+              <Edit3 className="w-4 h-4" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
+              className={cn(
+                'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300',
+                copied
+                  ? 'bg-emerald-500/30 border border-emerald-400/40 text-emerald-20'
+                  : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/20'
+              )}
+              title="分享"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            </motion.button>
+          </div>
         </div>
 
         <h3 className="text-xl font-bold text-white/90 mb-2 group-hover:text-white transition-colors">
@@ -297,10 +314,20 @@ export default function MemoryPalacePage() {
     navigate(`/memory-palace/${id}`);
   };
 
+  const handleEditPalace = (id: string) => {
+    navigate(`/memory-palace/${id}/edit`);
+  };
+
   const handleShare = async (id: string) => {
     const code = await sharePalace(id);
     if (code) {
-      setShareToast(`分享码已生成：${code}`);
+      const shareUrl = `${window.location.origin}/share/${code}`;
+      setShareToast(`分享链接已复制：${shareUrl}`);
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+      } catch {
+        // 忽略剪贴板错误
+      }
       await loadPalaces();
       setTimeout(() => setShareToast(null), 3000);
     }
@@ -484,6 +511,7 @@ export default function MemoryPalacePage() {
                           index={i}
                           onEnter={handleEnterPalace}
                           onShare={handleShare}
+                          onEdit={handleEditPalace}
                         />
                       ))}
                     </motion.div>
