@@ -37,7 +37,7 @@ interface PalaceCardProps {
   palace: MemoryPalace;
   index: number;
   onEnter: (id: string) => void;
-  onShare: (id: string) => void;
+  onShare: (id: string) => Promise<boolean>;
   onEdit: (id: string) => void;
 }
 
@@ -46,16 +46,10 @@ function PalaceCard({ palace, index, onEnter, onShare, onEdit }: PalaceCardProps
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const code = await sharePalace(palace.id);
-    if (code) {
-      try {
-        const shareUrl = `${window.location.origin}/share/${code}`;
-        await navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch {
-        onShare(palace.id);
-      }
+    const success = await onShare(palace.id);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -103,7 +97,7 @@ function PalaceCard({ palace, index, onEnter, onShare, onEdit }: PalaceCardProps
               className={cn(
                 'w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300',
                 copied
-                  ? 'bg-emerald-500/30 border border-emerald-400/40 text-emerald-20'
+                  ? 'bg-emerald-500/30 border border-emerald-400/40 text-emerald-200'
                   : 'bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white/90 hover:border-white/20'
               )}
               title="分享"
@@ -318,19 +312,24 @@ export default function MemoryPalacePage() {
     navigate(`/memory-palace/${id}/edit`);
   };
 
-  const handleShare = async (id: string) => {
+  const handleShare = async (id: string): Promise<boolean> => {
     const code = await sharePalace(id);
     if (code) {
       const shareUrl = `${window.location.origin}/share/${code}`;
-      setShareToast(`分享链接已复制：${shareUrl}`);
       try {
         await navigator.clipboard.writeText(shareUrl);
+        setShareToast(`分享链接已复制：${shareUrl}`);
+        await loadPalaces();
+        setTimeout(() => setShareToast(null), 3000);
+        return true;
       } catch {
-        // 忽略剪贴板错误
+        setShareToast(`分享码已生成：${code}，请手动复制`);
+        await loadPalaces();
+        setTimeout(() => setShareToast(null), 3000);
+        return false;
       }
-      await loadPalaces();
-      setTimeout(() => setShareToast(null), 3000);
     }
+    return false;
   };
 
   return (

@@ -307,6 +307,11 @@ export async function sharePalace(id: string): Promise<string> {
   const list = (await localforage.getItem<MemoryPalace[]>('memory-palaces')) || [];
   const palace = list.find((p) => p.id === id);
   if (!palace) return '';
+  
+  if (palace.isShared && palace.shareCode) {
+    return palace.shareCode;
+  }
+  
   const shareCode = Math.random().toString(36).substr(2, 8).toUpperCase();
   palace.isShared = true;
   palace.shareCode = shareCode;

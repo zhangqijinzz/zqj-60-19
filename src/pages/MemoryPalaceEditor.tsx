@@ -297,8 +297,29 @@ export default function MemoryPalaceEditorPage() {
     setNodes(initialNodes);
     setHistory([{ nodes: initialNodes }]);
     setHistoryIndex(0);
-    setHasUnsavedChanges(false);
     setSelectedNodeId(null);
+
+    let hasChanges = false;
+    if (palace) {
+      for (let i = 0; i < initialNodes.length; i++) {
+        const storedNode = palace.sceneData.memoryNodes.find(
+          (n) => n.id === initialNodes[i].id
+        );
+        if (storedNode) {
+          const [x1, y1, z1] = initialNodes[i].position;
+          const [x2, y2, z2] = storedNode.position;
+          if (
+            Math.abs(x1 - x2) > 0.001 ||
+            Math.abs(y1 - y2) > 0.001 ||
+            Math.abs(z1 - z2) > 0.001
+          ) {
+            hasChanges = true;
+            break;
+          }
+        }
+      }
+    }
+    setHasUnsavedChanges(hasChanges);
   };
 
   const selectedNode = useMemo(() => {
